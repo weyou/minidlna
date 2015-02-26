@@ -174,7 +174,7 @@ video_thumb_generate_tofile(const char *moviefname, const char *thumbfname, int 
 
 #ifdef ENABLE_VIDEO_THUMB
 static int
-video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek, int width, enum AVPixelFormat pixfmt)
+video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek, int width, enum PixelFormat pixfmt)
 {
 	AVFrame *frame = NULL, *scframe = NULL;
 	AVPacket packet;
@@ -229,7 +229,7 @@ video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek
 
 	vcctx->workaround_bugs = 1;
 
-	avret =  lav_avcodec_open(vcctx, vcodec, NULL);
+	avret =  lav_avcodec_open(vcctx, vcodec);
 	if(avret < 0)
 	{
 		DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to open a decoder \n");
@@ -317,7 +317,7 @@ thumb_generate_error:
 #endif
 
 int
-video_thumb_generate_tobuff(const char *moviefname, void* imgbuffer, int seek, int width, enum AVPixelFormat pixfmt)
+video_thumb_generate_tobuff(const char *moviefname, void* imgbuffer, int seek, int width, enum PixelFormat pixfmt)
 {
 #ifdef ENABLE_VIDEO_THUMB
 	AVFormatContext *fctx = NULL;

@@ -202,13 +202,9 @@ lav_frame_unref(AVFrame *ptr)
 }
 
 static inline int
-lav_avcodec_open(AVCodecContext *avctx, const AVCodec *codec, AVDictionary **options)
+lav_avcodec_open(AVCodecContext *avctx, const AVCodec *codec)
 {
-#if LIBAVCODEC_VERSION_INT >= ((53<<16)+(6<<8)+0)
-	return avcodec_open2(avctx, codec, options);
-#else
 	return avcodec_open(avctx, codec);
-#endif
 }
 
 static inline int

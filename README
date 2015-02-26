@@ -31,6 +31,12 @@ Prerequisites
 - libvorbis
 - libsqlite3
 - libavformat (the ffmpeg libraries)
-
+- libswscale
 
 Justin Maggard
+
+Build
+==================
+$ ./autogen.sh
+$ ./configure --enable-videothumbnail
+$ ./make
