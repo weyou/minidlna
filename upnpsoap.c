@@ -1841,6 +1841,31 @@ SamsungGetFeatureList(struct upnphttp * h, const char * action)
 	BuildSendAndCloseSoapResp(h, resp, sizeof(resp)-1);
 }
 
+/* Reset bookmark if current position is greater than 90% duration */
+static char*
+resetBookmarkPos(char *PosSecond, const char *rid)
+{
+    char *duration, *dot = NULL;
+    int len, videolen;
+
+	duration = sql_get_text_field(db, "SELECT DURATION from DETAILS "
+									  "WHERE ID = "
+									  "(select DETAIL_ID from OBJECTS "
+									  "where OBJECT_ID = '%q')", rid);
+	len = strnlen(duration, 15);
+	if (len < 11 || len == 15)
+		return PosSecond;
+
+	dot = index(duration, ':');
+	if (!dot || strnlen(dot, 11) != 10)
+		return PosSecond;
+
+	videolen = 3600 * atoi(duration) + 60 * atoi(dot+1) + atoi(dot+4);
+	if (atoi(PosSecond) > videolen * 0.9)
+		PosSecond = "0";
+	return PosSecond;
+}
+
 static void
 SamsungSetBookmark(struct upnphttp * h, const char * action)
 {
@@ -1858,6 +1883,9 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 
 	if ( atoi(PosSecond) < 30 )
 		PosSecond = "0";
+	else
+		/* Correct bookmark timestamp by 15 seconds */
+		sprintf(PosSecond, "%d", atoi(PosSecond) - 15);
 
 	if( ObjectID && PosSecond )
 	{
@@ -1865,6 +1893,7 @@ SamsungSetBookmark(struct upnphttp * h, const char * action)
 		const char *rid = ObjectID;
 
 		in_magic_container(ObjectID, 0, &rid);
+		PosSecond = resetBookmarkPos(PosSecond, rid);
 		ret = sql_exec(db, "INSERT OR REPLACE into BOOKMARKS"
 		                   " VALUES "
 		                   "((select DETAIL_ID from OBJECTS where OBJECT_ID = '%q'), %q)", rid, PosSecond);
