@@ -32,11 +32,12 @@ Prerequisites
 - libsqlite3
 - libavformat (the ffmpeg libraries)
 - libswscale
+- gettext
 
 Justin Maggard
 
 Build
 ==================
 $ ./autogen.sh
-$ ./configure --enable-videothumbnail
+$ ./configure --prefix=/usr/local --sbindir=/usr/local/bin --enable-videothumbnail
 $ ./make

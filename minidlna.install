@@ -1,0 +1,22 @@
+package() {
+  install -Dm644 minidlna.conf /usr/local/etc/minidlna.conf
+  install -Dm0644 minidlna.tmpfiles /usr/lib/tmpfiles.d/minidlna.conf
+  install -Dm0644 minidlna.service /lib/systemd/system/minidlna.service
+  install -Dm644 minidlna.conf.5 /usr/local/share/man/man5/minidlna.conf.5
+  install -Dm644 minidlnad.8 /usr/local/share/man/man8/minidlnad.8
+}
+
+post_install() {
+  getent group minidlna &>/dev/null || groupadd -r minidlna >/dev/null
+  getent passwd minidlna &> /dev/null || useradd -r -g minidlna -m -d /var/cache/minidlna -s /usr/sbin/nologin minidlna >/dev/null
+  systemd-tmpfiles --create minidlna.conf
+}
+
+post_remove() {
+  # Ensure that minidlna is not running
+  systemctl stop minidlna &>/dev/null
+
+  getent passwd minidlna &>/dev/null && userdel minidlna >/dev/null
+  getent group minidlna &>/dev/null && groupdel minidlna >/dev/null
+  true
+}
