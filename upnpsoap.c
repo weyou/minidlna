@@ -1202,6 +1202,7 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 	const char *objectid_sql = "o.OBJECT_ID";
 	const char *parentid_sql = "o.PARENT_ID";
 	const char *refid_sql = "o.REF_ID";
+	const char *left_join = NULL;
 	char where[256] = "";
 	char *orderBy = NULL;
 	struct NameValueParserData data;
@@ -1306,6 +1307,8 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 				parentid_sql = magic->parentid_sql;
 			if (magic->refid_sql)
 				refid_sql = magic->refid_sql;
+			if (magic->left_join)
+				left_join = magic->left_join;
 			if (magic->where)
 				strncpyt(where, magic->where, sizeof(where));
 			if (magic->orderby && !GETFLAG(DLNA_STRICT_MASK))
@@ -1364,9 +1367,9 @@ BrowseContentDirectory(struct upnphttp * h, const char * action)
 		}
 
 		sql = sqlite3_mprintf("SELECT %s, %s, %s, " COLUMNS
-		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID)"
+		                      "from OBJECTS o left join DETAILS d on (d.ID = o.DETAIL_ID) %s"
 				      " where %s %s limit %d, %d;",
-				      objectid_sql, parentid_sql, refid_sql,
+							  objectid_sql, parentid_sql, refid_sql, THISORNUL(left_join),
 				      where, THISORNUL(orderBy), StartingIndex, RequestedCount);
 		DPRINTF(E_DEBUG, L_HTTP, "Browse SQL: %s\n", sql);
 		ret = sqlite3_exec(db, sql, callback, (void *) &args, &zErrMsg);

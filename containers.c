@@ -51,6 +51,7 @@ struct magic_container_s magic_containers[] =
 	  NULL,
 	  NULL,
 	  NULL,
+	  NULL,
 	  -1,
 	  0,
 	},
@@ -63,6 +64,7 @@ struct magic_container_s magic_containers[] =
 	  "\"1$FF0\"",
 	  "o.OBJECT_ID",
 	  "(select null from DETAILS where MIME glob 'a*' and timestamp > (strftime('%s','now') - "NINETY_DAYS") limit 50)",
+	  NULL,
 	  "MIME glob 'a*' and REF_ID is NULL and timestamp > (strftime('%s','now') - "NINETY_DAYS")",
 	  "order by TIMESTAMP DESC",
 	  50,
@@ -77,9 +79,25 @@ struct magic_container_s magic_containers[] =
 	  "\"2$FF0\"",
 	  "o.OBJECT_ID",
 	  "(select null from DETAILS where MIME glob 'v*' and timestamp > (strftime('%s','now') - "NINETY_DAYS") limit 50)",
+	  NULL,
 	  "MIME glob 'v*' and REF_ID is NULL and timestamp > (strftime('%s','now') - "NINETY_DAYS")",
 	  "order by TIMESTAMP DESC",
 	  50,
+	  0,
+	},
+
+	/* Resume video container - last 7 with a bookmark */
+	{ "Resume",
+	  "2$FF1",
+	  NULL,
+	  "\"2$FF1$\" || OBJECT_ID",
+	  "\"2$FF1\"",
+	  "o.OBJECT_ID",
+	  "(select b.ID from BOOKMARKS b LEFT JOIN DETAILS d ON (b.ID = d.ID) WHERE MIME glob 'v*' and b.SEC > 0 LIMIT 10)",
+	  "LEFT JOIN BOOKMARKS b ON (b.ID = d.id)",
+	  "MIME glob 'v*' and REF_ID is NULL and b.SEC > 0",
+	  "order by TIMESTAMP DESC",
+	  7,
 	  0,
 	},
 
@@ -91,6 +109,7 @@ struct magic_container_s magic_containers[] =
 	  "\"3$FF0\"",
 	  "o.OBJECT_ID",
 	  "(select null from DETAILS where MIME glob 'i*' and timestamp > (strftime('%s','now') - "NINETY_DAYS") limit 50)",
+	  NULL,
 	  "MIME glob 'i*' and REF_ID is NULL and timestamp > (strftime('%s','now') - "NINETY_DAYS")",
 	  "order by TIMESTAMP DESC",
 	  50,
@@ -98,23 +117,23 @@ struct magic_container_s magic_containers[] =
 	},
 
 	/* Microsoft PlaysForSure containers */
-	{ NULL, "4", &music_all_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "5", &music_genre_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "6", &music_artist_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "7", &music_album_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "8", &video_all_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "B", &image_all_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "C", &image_date_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "F", &music_plist_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "14", &music_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "15", &video_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "16", &image_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
-	{ NULL, "D2", &image_camera_id, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "4", &music_all_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "5", &music_genre_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "6", &music_artist_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "7", &music_album_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "8", &video_all_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "B", &image_all_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "C", &image_date_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "F", &music_plist_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "14", &music_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "15", &video_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "16", &image_dir_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
+	{ NULL, "D2", &image_camera_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, -1, FLAG_MS_PFS },
 
 	/* Jump straight to Music on audio-only devices */
-	{ NULL, "0", &music_id, NULL, "0", NULL, NULL, NULL, NULL, -1, FLAG_AUDIO_ONLY },
+	{ NULL, "0", &music_id, NULL, "0", NULL, NULL, NULL, NULL, NULL, -1, FLAG_AUDIO_ONLY },
 
-	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0 }
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0 }
 };
 
 struct magic_container_s *
