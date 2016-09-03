@@ -147,6 +147,7 @@ video_thumb_generate_tofile(const char *moviefname, const char *thumbfname, int 
 	clock_t start, end;
 
 	start = clock();
+	av_log_set_level(AV_LOG_QUIET);
 	memset(&img, 0, sizeof(image_s));
 
 	if ((video_thumb_generate_tobuff(moviefname, &img, seek, width, PIX_FMT_RGB32_1) < 0))
