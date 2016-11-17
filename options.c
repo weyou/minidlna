@@ -69,7 +69,8 @@ static const struct {
 	{ THUMB_WIDTH, "thumbnail_width" },
 #endif
 	{ ENABLE_MTA, "enable_mta" },
-	{ MERGE_MEDIA_DIRS, "merge_media_dirs" }
+	{ MERGE_MEDIA_DIRS, "merge_media_dirs" },
+	{ WIDE_LINKS, "wide_links" }
 };
 
 int

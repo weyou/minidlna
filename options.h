@@ -62,7 +62,8 @@ enum upnpconfigoptions {
 	THUMB_WIDTH,			/* thunbnail image with */
 #endif
 	ENABLE_MTA,
-	MERGE_MEDIA_DIRS		/* don't add an extra directory level when there are multiple media dirs */
+	MERGE_MEDIA_DIRS,		/* don't add an extra directory level when there are multiple media dirs */
+	WIDE_LINKS			/* allow following symlinks outside the defined media_dirs */
 };
 
 /* readoptionsfile()
