@@ -307,8 +307,10 @@ video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek
 
 thumb_generate_error:
 	sws_freeContext(scctx);
-	avpicture_free((struct AVPicture*)scframe);
-	av_free(scframe);
+	if(scframe) {
+		avpicture_free((struct AVPicture*)scframe);
+		av_free(scframe);
+	}
 	av_free_packet(&packet);
 	av_free(frame);
 	avcodec_close(vcctx);
