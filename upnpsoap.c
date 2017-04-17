@@ -1934,6 +1934,9 @@ resetBookmarkPos(char *PosSecond, const char *rid)
 									  "WHERE ID = "
 									  "(select DETAIL_ID from OBJECTS "
 									  "where OBJECT_ID = '%q')", rid);
+	if(!duration)
+		return "0";
+
 	len = strnlen(duration, 15);
 	if (len < 11 || len == 15)
 		return PosSecond;
