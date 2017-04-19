@@ -85,55 +85,45 @@ static int
 get_video_packet(AVFormatContext *ctx, AVCodecContext *vctx,
 		 AVPacket *pkt, AVFrame *frame, int vstream)
 {
-	int moreframes, decoded, finished;
-	int avret, i, j, l;
+	int finished;
+	int avret;
 
-	av_free_packet(pkt);
+	for (;;) {   
+		avret = av_read_frame(ctx, pkt);
+		if (avret == AVERROR(EAGAIN))
+			continue;
+		else if (avret < 0)
+			break;
 
-	finished = 0;
-	for (l = 0; !finished && l < 500; l++)
-	{
-		moreframes = 1;
-		decoded = 0;
-		for (i = 0; moreframes && ! decoded && i < 2000; i++)
-		{
-			avret = av_read_frame(ctx, pkt);
-			if ((moreframes = (avret >= 0)))
-			{
-				if (!(decoded = (pkt->stream_index == vstream)))
-				{
-					av_free_packet(pkt);
-					continue;
+		if(pkt->stream_index == vstream) {   
+			lav_avcodec_decode_video(vctx, frame, &finished, pkt);
+		        if(finished) {   
+				if(frame->key_frame == 1) {
+					return 1;
 				}
-
-				for (j = 0; !finished && j < 50; j++)
-				{
-					lav_frame_unref(frame);
-					avret = lav_avcodec_decode_video(vctx, frame, &finished, pkt);
-					if (avret < 0)
-						return 0;
-				}
-
-
 			}
+			lav_frame_unref(frame);
 		}
-	}
+		av_free_packet(pkt);   
+	} 
 
-	return (finished > 0);
+	return 0;
 }
 
 static int
-video_seek(int seconds, AVFormatContext *ctx, AVCodecContext *vctx,
+video_seek(int seek, AVFormatContext *ctx, AVCodecContext *vctx,
 		 AVPacket *pkt, AVFrame *frame, int vstream)
 {
-	int64_t tstamp = AV_TIME_BASE * (int64_t) seconds;
+	if (seek >= 0) {
+		int seconds = seek * (ctx->duration/AV_TIME_BASE) / 100;
+		int64_t tstamp = AV_TIME_BASE * (int64_t) seconds;
 
-	if (tstamp < 0)
-		tstamp = 0;
+		if (tstamp < 0)
+			tstamp = 0;
 
-	if ((av_seek_frame(ctx, -1, tstamp, 0) >=0))
-		avcodec_flush_buffers(ctx->streams[vstream]->codec);
-
+		if ((av_seek_frame(ctx, -1, tstamp, 0) >=0))
+			avcodec_flush_buffers(ctx->streams[vstream]->codec);
+	}
 	return get_video_packet(ctx, vctx, pkt, frame, vstream);
 }
 #endif
@@ -175,8 +165,9 @@ video_thumb_generate_tofile(const char *moviefname, const char *thumbfname, int 
 
 #ifdef ENABLE_VIDEO_THUMB
 static int
-video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek, int width, enum AVPixelFormat pixfmt)
+video_thumb_generate_ctx_tobuff(const char *moviefname, void* imgbuffer, int seek, int width, enum AVPixelFormat pixfmt)
 {
+	AVFormatContext *fctx = NULL;
 	AVFrame *frame = NULL, *scframe = NULL;
 	AVPacket packet;
 	AVCodecContext *vcctx = NULL;
@@ -186,21 +177,21 @@ video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek
 	int dwidth, dheight;
 	image_s* buffer = (image_s*) imgbuffer;
 
-	if (!fctx)
-		return -1;
-
 	if (!buffer)
 		return -1;
 
-	if (seek < 0)
-		seek = 0;
-	else if (seek > 90)
+	if (seek > 90)
 		seek = 90;
 
 	if (width < 64)
 		width = 64;
 	else if (width > 480)
 		width = 480;
+
+	if (lav_open(&fctx, moviefname)) {
+		DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to open movie file (%s) \n", moviefname);
+		return -1;
+	}
 
 	av_init_packet(&packet);
 
@@ -244,11 +235,21 @@ video_thumb_generate_ctx_tobuff(AVFormatContext *fctx, void* imgbuffer, int seek
 		goto thumb_generate_error;
 	}
 
-	if (!video_seek(seek*(fctx->duration/AV_TIME_BASE)/100,
-		fctx, vcctx, &packet, frame, vs))
+	if (!video_seek(seek, fctx, vcctx, &packet, frame, vs))
 	{
-		DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to seek video for %d%% position \n", seek);
+		if (seek >= 0) {
+			DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to seek video for %d%% position\n", seek);
+			DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: try to decode the first frame\n");
+			
+			av_free_packet(&packet);
+			av_free(frame);
+			avcodec_close(vcctx);
+			lav_close(fctx);
+			return video_thumb_generate_ctx_tobuff(moviefname, imgbuffer, -1, width, pixfmt);
+		}
+		DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to decode the first frame\n");
 		goto thumb_generate_error;
+	
 	}
 
 	if (frame->interlaced_frame)
@@ -314,6 +315,7 @@ thumb_generate_error:
 	av_free_packet(&packet);
 	av_free(frame);
 	avcodec_close(vcctx);
+	lav_close(fctx);
 
 	return ret;
 }
@@ -323,21 +325,13 @@ int
 video_thumb_generate_tobuff(const char *moviefname, void* imgbuffer, int seek, int width, enum AVPixelFormat pixfmt)
 {
 #ifdef ENABLE_VIDEO_THUMB
-	AVFormatContext *fctx = NULL;
 	int ret = -1;
 
 	if(!moviefname)
 		return -1;
 
-	if (lav_open(&fctx, moviefname))
-	{
-		DPRINTF(E_WARN, L_METADATA, "video_thumb_generate_tobuff: unable to open movie file (%s) \n", moviefname);
-		return -1;
-	}
+	ret = video_thumb_generate_ctx_tobuff(moviefname, imgbuffer, seek, width, pixfmt);
 
-	ret = video_thumb_generate_ctx_tobuff(fctx, imgbuffer, seek, width, pixfmt);
-
-	lav_close(fctx);
 	return ret;
 #else
 	return -1;
@@ -446,12 +440,6 @@ video_thumb_generate_mta_file(const char *moviefname, int duration, int allblack
 	if ( !(fp = fopen(mta_path, "w")) )
 		goto mta_error;
 
-
-#ifdef ENABLE_VIDEO_THUMB
-	if(!allblack)
-		lav_open(&fctx, moviefname);
-#endif
-
 	res = fwrite(mta_header, 1, sizeof(mta_header) -1, fp);
 	if(res != sizeof(mta_header) - 1)
 		goto mta_error;
@@ -463,9 +451,9 @@ video_thumb_generate_mta_file(const char *moviefname, int duration, int allblack
 			goto mta_error;
 
 #ifdef ENABLE_VIDEO_THUMB
-		if ( !allblack && fctx)
+		if (!allblack)
 		{
-			res = video_thumb_generate_ctx_tobuff(fctx, &img, per[i], MTA_WIDTH, PIX_FMT_RGB32_1);
+			res = video_thumb_generate_ctx_tobuff(moviefname, &img, per[i], MTA_WIDTH, PIX_FMT_RGB32_1);
 			if (img.buf)
 			{
 				jpeg = image_save_to_jpeg_buf(&img, &jpegsize);
